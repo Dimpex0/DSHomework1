@@ -125,9 +125,12 @@
   <ItemGroup>
     <ClCompile Include="DSHomework1.cpp" />
     <ClCompile Include="Expression.cpp" />
+    <ClCompile Include="String.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Expression.h" />
+    <ClInclude Include="String.h" />
+    <ClInclude Include="Vector.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
