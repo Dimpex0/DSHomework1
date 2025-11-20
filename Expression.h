@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "String.h"
-#include "Vector.h"
+#include <queue>
 
 struct VariableStore {
 	double values[26];
@@ -45,12 +45,12 @@ public:
 	char getVar() const { return var; }
 
 private:
-	Vector<String> toRPN(const String& input);
+	std::queue<String> toRPN(const String& input);
 
 private:
 	static unsigned ID_COUNTER;
 	const unsigned id;
 
 	char var;
-	Vector<String> rpn;
+	std::queue<String> rpn;
 };

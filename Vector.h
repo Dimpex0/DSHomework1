@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <stdexcept>
 
 template<typename T>
@@ -11,7 +11,7 @@ public:
 	~Vector();
 
 	T& operator[](size_t index) { return at(index); };
-	const T& operator[](size_t index) const {return at(index); };
+	const T& operator[](size_t index) const { return at(index); };
 
 	T& at(size_t index);
 	const T& at(size_t index) const;

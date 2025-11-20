@@ -14,6 +14,21 @@ bool validateControls(const std::string& controls) {
 	return true;
 }
 
+void handleCalcResult(CalcResult result, const Expression& expr, std::queue<Expression>& queue, const VariableStore& varStore) {
+	if (result == CalcResult::CALCULATED) {
+		int varIndex = varStore.getId(expr.getVar());
+		double value = varStore.values[varIndex];
+		std::cout << "Expression (" << expr.getId() << ") was calculated. The value of " << expr.getVar() << " is now " << value << "." << std::endl;
+	}
+	else if (result == CalcResult::POSTPONED) {
+		std::cout << "Expression (" << expr.getId() << ") was postponed." << std::endl;
+		queue.push(expr);
+	}
+	else {
+		std::cout << "Error: Could not calculate expression (" << expr.getId() << ")." << std::endl;
+	}
+}
+
 int main(int argc, char* argv[]) {
 	std::cout << "Enter controls ('R' and 'C' only): ";
 	std::string inputControls;
@@ -63,18 +78,7 @@ int main(int argc, char* argv[]) {
 
 			CalcResult result = expr.calculate(varStore);
 
-			if (result == CalcResult::CALCULATED) {
-				int varIndex = varStore.getId(expr.getVar());
-				double value = varStore.values[varIndex];
-				std::cout << "Expression (" << expr.getId() << ") was calculated. The value of " << expr.getVar() << " is now " << value << "." << std::endl;
-			}
-			else if (result == CalcResult::POSTPONED) {
-				std::cout << "Expression (" << expr.getId() << ") was postponed." << std::endl;
-				queue.push(expr);
-			}
-			else {
-				std::cout << "Error: Could not calculate expression (" << expr.getId() << ")." << std::endl;
-			}
+			handleCalcResult(result, expr, queue, varStore);
 		}
 		else {
 			std::cout << "Invalid command '" << command << "'. Skipping." << std::endl;
@@ -82,12 +86,18 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (!queue.empty()) {
-		std::cout << "\nWARNING: There are " << queue.size() << " expressions remaining in the queue." << std::endl;
+		std::cout << "WARNING: There are " << queue.size() << " expressions remaining in the queue. Should they be calculated? (y/n): " << std::endl;
+		char input;
+		std::cin >> input;
 
-		while (!queue.empty()) {
-			queue.pop();
+		if (input == 'Y' || input == 'y') {
+			while (!queue.empty()) {
+				Expression expr = queue.front();
+				queue.pop();
+				CalcResult result = expr.calculate(varStore);
+
+				handleCalcResult(result, expr, queue, varStore);
+			}
 		}
 	}
-
-	return 0;
 }

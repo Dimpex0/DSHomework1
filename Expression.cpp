@@ -1,10 +1,10 @@
 ﻿#include "Expression.h"
 #include <stack>
+#include <queue>
 #include <cmath>
-#include <iostream>
+#include <stdexcept>
 #include <string>
-
-unsigned Expression::ID_COUNTER = 1;
+#include "Vector.h"
 
 static double stringToDouble(const String& str) { return std::stod(str.c_str()); }
 static String doubleToString(double val) { return std::to_string(val).c_str(); }
@@ -41,6 +41,7 @@ static double applyFunc(const String& f, const Vector<double>& args) {
     return 0;
 }
 
+unsigned Expression::ID_COUNTER = 1;
 
 Expression::Expression(const String& input)
     : id(ID_COUNTER++)
@@ -63,18 +64,17 @@ Expression::Expression(const String& input)
     rpn = toRPN(rightSide);
 }
 
-Vector<String> Expression::toRPN(const String& input)
+std::queue<String> Expression::toRPN(const String& input)
 {
-    Vector<String> output;
-    Vector<String> opStack;
-    Vector<int> argCounts;
+    std::queue<String> output;
+    std::stack<String> opStack;
+    std::stack<int> argCounts;
 
     for (size_t i = 0; i < input.size(); i++) {
         char el = input[i];
 
         if (isSpace(el)) continue;
 
-        // 1. ЧИСЛА
         if (isDigit(el) || el == '.') {
             String current;
             if (el == '.') {
@@ -85,7 +85,7 @@ Vector<String> Expression::toRPN(const String& input)
                 i++;
             }
             i--;
-            output.push_back(current);
+            output.push(current);
         }
         else if (el == '-' && i + 1 < input.size() && isDigit(input[i + 1])) {
             String current(el);
@@ -95,8 +95,7 @@ Vector<String> Expression::toRPN(const String& input)
                 i++;
             }
             i--;
-            output.push_back(current);
-
+            output.push(current);
         }
         else if (isAlpha(el)) {
             String name;
@@ -107,79 +106,79 @@ Vector<String> Expression::toRPN(const String& input)
             i--;
 
             if (isFunction(name)) {
-                opStack.push_back(name);
-                argCounts.push_back(1);
+                opStack.push(name);
+                argCounts.push(1);
             }
             else {
                 if (name.size() != 1) {
                     throw std::invalid_argument("Unknown function.");
                 }
-                output.push_back(name);
+                output.push(name);
             }
         }
         else if (el == ';') {
-            while (!opStack.empty() && opStack.back() != "(") {
-                output.push_back(opStack.back());
-                opStack.pop_back();
+            while (!opStack.empty() && opStack.top() != "(") {
+                output.push(opStack.top());
+                opStack.pop();
             }
             if (!argCounts.empty()) {
-                argCounts.back()++;
+                argCounts.top()++;
             }
         }
         else if (el == '(') {
-            opStack.push_back("(");
+            opStack.push("(");
         }
         else if (el == ')') {
-            while (!opStack.empty() && opStack.back() != "(") {
-                output.push_back(opStack.back());
-                opStack.pop_back();
+            while (!opStack.empty() && opStack.top() != "(") {
+                output.push(opStack.top());
+                opStack.pop();
             }
 
-            if (!opStack.empty()) opStack.pop_back();
+            if (!opStack.empty()) opStack.pop();
 
-            if (!opStack.empty() && isFunction(opStack.back())) {
-                String funcName = opStack.back();
-                opStack.pop_back();
+            if (!opStack.empty() && isFunction(opStack.top())) {
+                String funcName = opStack.top();
+                opStack.pop();
 
                 int args = 1;
                 if (!argCounts.empty()) {
-                    args = argCounts.back();
-                    argCounts.pop_back();
+                    args = argCounts.top();
+                    argCounts.pop();
                 }
 
                 String finalToken = funcName;
                 finalToken += "_";
                 finalToken += intToString(args);
-                output.push_back(finalToken);
+                output.push(finalToken);
             }
         }
         else if (isOperator(el)) {
             String opStr(el);
 
-            while (!opStack.empty() && opStack.back() != "(") {
-                String top = opStack.back();
+            while (!opStack.empty() && opStack.top() != "(") {
+                String top = opStack.top();
 
                 if (getPrecedence(top) >= getPrecedence(opStr)) {
                     if (opStr == "^" && getPrecedence(top) == getPrecedence(opStr)) break;
 
-                    output.push_back(top);
-                    opStack.pop_back();
+                    output.push(top);
+                    opStack.pop();
                 }
                 else {
                     break;
                 }
             }
-            opStack.push_back(opStr);
+            opStack.push(opStr);
            
         }
     }
 
     while (!opStack.empty()) {
-        if (opStack.back() == "(" || opStack.back() == ")") {
+        if (opStack.top() == "(" || opStack.top() == ")") {
             throw std::invalid_argument("Mismatched parentheses");
         }
-        output.push_back(opStack.back());
-        opStack.pop_back();
+        output.push(opStack.top());
+        opStack.pop();
     }
 
     return output;
@@ -188,8 +187,10 @@ Vector<String> Expression::toRPN(const String& input)
 CalcResult Expression::calculate(VariableStore& store) {
     std::stack<double> stack;
 
-    for (size_t i = 0; i < rpn.size(); i++) {
-        String token = rpn[i];
+    std::queue<String> rpnCopy = rpn;
+    while (!rpnCopy.empty()) {
+        String token = rpnCopy.front();
+        rpnCopy.pop();
 
         if (isDigit(token[0]) || (token.size() > 1 && token[0] == '-' && isDigit(token[1]))) {
             stack.push(std::stod(token.c_str()));
